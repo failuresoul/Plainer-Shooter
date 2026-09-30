@@ -3,6 +3,10 @@
  * ─────────────────────────────────────────────────────────────
  * Manages enemy spawn timing, type selection, and wave logic.
  * Completely decoupled from the game loop — just call tick().
+ *
+ * Difficulty-driven params read from cfg:
+ *   nonShootableChance  – base % of non-shootable spawns
+ *   maxEnemiesOnScreen  – hard cap; tick() returns null if reached
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -14,7 +18,7 @@ class Spawner {
     this.lastTime  = null;
   }
 
-  /** Reset for a new game or new level. */
+  /** Reset for a new game or difficulty change. */
   reset(cfg) {
     this.cfg      = cfg;
     this.interval = cfg.spawnInterval;
@@ -25,12 +29,20 @@ class Spawner {
   /**
    * Call once per frame with the current timestamp.
    * Returns an enemy type key to spawn, or null.
-   * @param {number} now    - performance.now()
-   * @param {number} level  - current game level
-   * @param {boolean} isBossLevel - force boss spawn
+   *
+   * @param {number}  now          - performance.now()
+   * @param {number}  level        - current game level
+   * @param {boolean} isBossLevel  - force boss spawn this tick
+   * @param {number}  enemyCount   - current live enemy count (for cap check)
    */
-  tick(now, level, isBossLevel) {
+  tick(now, level, isBossLevel, enemyCount) {
     if (this.lastTime === null) { this.lastTime = now; return null; }
+
+    // Enforce per-difficulty concurrent enemy cap
+    if (enemyCount >= this.cfg.maxEnemiesOnScreen) {
+      this.lastTime = now; // keep timer from stacking up
+      return null;
+    }
 
     const elapsed = now - this.lastTime;
     this.timer += elapsed;
@@ -38,7 +50,7 @@ class Spawner {
 
     if (this.timer >= this.interval) {
       this.timer = 0;
-      // Reduce interval as level increases (but never below min)
+      // Speed up spawns as level rises (never below minimum)
       this.interval = Math.max(
         this.cfg.spawnIntervalMin,
         this.cfg.spawnInterval - (level - 1) * this.cfg.spawnDecreaseRate
@@ -49,34 +61,34 @@ class Spawner {
   }
 
   /**
-   * Pick which object type to spawn based on current level.
+   * Pick which object type to spawn.
    *
-   * Types with  shootable: true  → can be destroyed by missiles
-   * Types with  shootable: false → missiles pass through them
+   * Non-shootable chance is driven by cfg.nonShootableChance:
+   *   Easy   → 12 %   (mostly shootable targets)
+   *   Medium → 28 %   (balanced mix)
+   *   Hard   → 42 %   (many hazards — force player to dodge)
    *
-   * Probability table:
-   *   asteroid  — non-shootable rocky hazard, always present
-   *   barrier   — non-shootable energy wall, always present
-   *   speeder   — shootable, unlocked at level 2
-   *   tank      — shootable, unlocked at level 3
-   *   basic     — shootable, filler
+   * Chance grows slightly with level (+1 % per level, capped at +10 %).
    */
   _chooseType(level, isBossLevel) {
     if (isBossLevel) return 'boss';
 
     const roll = Math.random();
 
-    // Non-shootable hazards — always in the mix (25% base chance)
-    const nonShootChance = Math.min(0.35, 0.25 + (level - 1) * 0.01);
-    if (roll < nonShootChance) {
+    // Non-shootable hazards — scales with difficulty + level
+    const baseChance   = this.cfg.nonShootableChance;
+    const levelBonus   = Math.min(0.10, (level - 1) * 0.01);
+    const hazardChance = Math.min(0.55, baseChance + levelBonus);
+
+    if (roll < hazardChance) {
+      // Roughly equal asteroid / barrier split
       return Math.random() < 0.55 ? 'asteroid' : 'barrier';
     }
 
-    // Shootable enemies — weighted by level
+    // Shootable enemies — richer variety at higher levels
     const r2 = Math.random();
     if (level >= 3 && r2 < 0.18) return 'tank';
     if (level >= 2 && r2 < 0.35) return 'speeder';
     return 'basic';
   }
 }
-

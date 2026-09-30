@@ -96,7 +96,7 @@ class Game {
 
     // ── Spawn enemies ──
     const isBossLevel = (this.level % this.cfg.bossEveryNLevels === 0) && !this._bossSpawned;
-    const spawnType   = this.spawner.tick(now, this.level, isBossLevel);
+    const spawnType   = this.spawner.tick(now, this.level, isBossLevel, this.enemies.length);
     if (spawnType) {
       if (spawnType === 'boss') this._bossSpawned = true;
       const def = ENEMY_TYPES[spawnType];
@@ -266,6 +266,12 @@ class Game {
     document.getElementById('level-display').textContent = this.level;
     document.getElementById('lives-display').textContent =
       '❤️'.repeat(Math.max(0, this.lives));
+    // Difficulty badge in HUD
+    const diffEl = document.getElementById('diff-display');
+    if (diffEl && this.cfg) {
+      diffEl.textContent = this.cfg.emoji + ' ' + this.cfg.label;
+      diffEl.dataset.diff = this.diffKey;
+    }
   }
 
   _showScreen(id) {
