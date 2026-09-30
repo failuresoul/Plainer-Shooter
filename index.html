@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plainer Shooter — 2D Aerial Combat</title>
+  <meta name="description" content="A fast-paced 2D plane shooter. Dodge and destroy incoming enemies, survive as long as you can!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-wrapper">
+
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-block" id="hud-score">
+        <span class="hud-label">SCORE</span>
+        <span class="hud-value" id="score-display">0</span>
+      </div>
+      <div class="hud-block" id="hud-level">
+        <span class="hud-label">LEVEL</span>
+        <span class="hud-value" id="level-display">1</span>
+      </div>
+      <div class="hud-block" id="hud-lives">
+        <span class="hud-label">LIVES</span>
+        <span class="hud-value" id="lives-display">❤️❤️❤️</span>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Screens -->
+    <div id="start-screen" class="overlay active">
+      <div class="overlay-box">
+        <div class="logo-icon">✈️</div>
+        <h1>PLAINER<br/><span class="accent">SHOOTER</span></h1>
+        <p class="subtitle">Survive the skies. Destroy everything.</p>
+        <div class="controls-hint">
+          <div class="key-row"><kbd>← →</kbd> Move</div>
+          <div class="key-row"><kbd>SPACE</kbd> Shoot</div>
+          <div class="key-row"><kbd>P</kbd> Pause</div>
+        </div>
+        <button id="btn-start" class="btn-primary">START GAME</button>
+        <div class="difficulty-row">
+          <span class="diff-label">Difficulty:</span>
+          <button class="diff-btn active" id="diff-easy" data-diff="easy">Easy</button>
+          <button class="diff-btn" id="diff-medium" data-diff="medium">Medium</button>
+          <button class="diff-btn" id="diff-hard" data-diff="hard">Hard</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause-screen" class="overlay">
+      <div class="overlay-box compact">
+        <h2>PAUSED</h2>
+        <button id="btn-resume" class="btn-primary">RESUME</button>
+        <button id="btn-restart-pause" class="btn-secondary">RESTART</button>
+      </div>
+    </div>
+
+    <div id="gameover-screen" class="overlay">
+      <div class="overlay-box">
+        <div class="logo-icon">💥</div>
+        <h2>GAME OVER</h2>
+        <p class="final-score">Score: <span id="final-score">0</span></p>
+        <p class="final-level">Reached Level <span id="final-level">1</span></p>
+        <button id="btn-restart" class="btn-primary">PLAY AGAIN</button>
+        <button id="btn-menu" class="btn-secondary">MAIN MENU</button>
+      </div>
+    </div>
+
+    <div id="level-banner" class="level-banner"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/spawner.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
