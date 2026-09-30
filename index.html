@@ -4,152 +4,145 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plainer Shooter — 2D Aerial Combat</title>
-  <meta name="description" content="A fast-paced 2D plane shooter. Dodge and destroy incoming enemies, survive as long as you can!" />
+  <meta name="description" content="A 2D plane shooter. Shoot enemies, dodge hazards, survive!" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600&display=swap"
+        rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="game-wrapper">
+<div id="game-wrapper">
 
-    <!-- HUD -->
-    <div id="hud">
-      <div class="hud-block" id="hud-score">
-        <span class="hud-label">SCORE</span>
-        <span class="hud-value" id="score-display">0</span>
-      </div>
-      <div class="hud-block" id="hud-level">
-        <span class="hud-label">LEVEL</span>
-        <span class="hud-value" id="level-display">1</span>
-      </div>
-      <div class="hud-block" id="hud-diff">
-        <span class="hud-label">DIFFICULTY</span>
-        <span class="hud-value" id="diff-display">—</span>
-      </div>
-      <div class="hud-block" id="hud-lives">
-        <span class="hud-label">LIVES</span>
-        <span class="hud-value" id="lives-display">❤️❤️❤️</span>
-      </div>
+  <!-- ─────────────── HUD ─────────────── -->
+  <div id="hud">
+    <div class="hud-block">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-value" id="score-display">0</span>
     </div>
-
-    <!-- Object-type legend -->
-    <div id="legend">
-      <span class="legend-item shootable">&#9671; SHOOT TO DESTROY</span>
-      <span class="legend-sep">|</span>
-      <span class="legend-item nonshootable">&#9711; INDESTRUCTIBLE — EVADE!</span>
+    <div class="hud-block">
+      <span class="hud-label">LEVEL</span>
+      <span class="hud-value hud-level" id="level-display">1</span>
     </div>
-
-    <!-- Canvas -->
-    <canvas id="game-canvas"></canvas>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         SCREEN 1 — Title / Landing
-    ═══════════════════════════════════════════════════════════ -->
-    <div id="title-screen" class="overlay active">
-      <div class="overlay-box title-box">
-        <div class="logo-icon">✈️</div>
-        <h1>PLAINER<br/><span class="accent">SHOOTER</span></h1>
-        <p class="subtitle">Survive the skies. Destroy everything.</p>
-
-        <div class="controls-hint">
-          <div class="key-row"><kbd>← →</kbd> Move</div>
-          <div class="key-row"><kbd>SPACE</kbd> Shoot</div>
-          <div class="key-row"><kbd>P</kbd> Pause</div>
-        </div>
-
-        <button id="btn-pick-difficulty" class="btn-primary">SELECT DIFFICULTY</button>
-      </div>
+    <div class="hud-block">
+      <span class="hud-label">DIFFICULTY</span>
+      <span class="hud-value hud-diff" id="diff-display">—</span>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         SCREEN 2 — Difficulty Selection
-    ═══════════════════════════════════════════════════════════ -->
-    <div id="difficulty-screen" class="overlay">
-      <div class="overlay-box diff-select-box">
-        <h2 class="diff-screen-title">CHOOSE DIFFICULTY</h2>
-
-        <div class="diff-cards">
-
-          <button class="diff-card" id="card-easy" data-diff="easy">
-            <span class="diff-card-emoji">🟢</span>
-            <span class="diff-card-label">EASY</span>
-            <ul class="diff-card-stats">
-              <li>5 lives</li>
-              <li>Slow objects</li>
-              <li>Mostly shootable</li>
-              <li>Max 4 at once</li>
-            </ul>
-            <span class="diff-card-tag tag-easy">BEGINNER</span>
-          </button>
-
-          <button class="diff-card featured" id="card-medium" data-diff="medium">
-            <span class="diff-card-emoji">🟡</span>
-            <span class="diff-card-label">MEDIUM</span>
-            <ul class="diff-card-stats">
-              <li>3 lives</li>
-              <li>Medium speed</li>
-              <li>Mixed objects</li>
-              <li>Max 7 at once</li>
-            </ul>
-            <span class="diff-card-tag tag-medium">RECOMMENDED</span>
-          </button>
-
-          <button class="diff-card" id="card-hard" data-diff="hard">
-            <span class="diff-card-emoji">🔴</span>
-            <span class="diff-card-label">HARD</span>
-            <ul class="diff-card-stats">
-              <li>2 lives</li>
-              <li>Fast & frequent</li>
-              <li>Heavy hazards</li>
-              <li>Max 12 at once</li>
-            </ul>
-            <span class="diff-card-tag tag-hard">CHALLENGE</span>
-          </button>
-
-        </div>
-
-        <button id="btn-back-title" class="btn-secondary back-btn">← BACK</button>
-      </div>
+    <div class="hud-block">
+      <span class="hud-label">LIVES</span>
+      <span class="hud-value hud-lives" id="lives-display">❤️❤️❤️</span>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         SCREEN 3 — Pause
-    ═══════════════════════════════════════════════════════════ -->
-    <div id="pause-screen" class="overlay">
-      <div class="overlay-box compact">
-        <h2>PAUSED</h2>
-        <p class="pause-diff-label" id="pause-diff-label"></p>
-        <button id="btn-resume" class="btn-primary">RESUME</button>
-        <button id="btn-restart-pause" class="btn-secondary">RESTART</button>
-        <button id="btn-menu-pause" class="btn-secondary">MAIN MENU</button>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         SCREEN 4 — Game Over
-    ═══════════════════════════════════════════════════════════ -->
-    <div id="gameover-screen" class="overlay">
-      <div class="overlay-box">
-        <div class="logo-icon">💥</div>
-        <h2>GAME OVER</h2>
-        <p class="final-diff" id="final-diff"></p>
-        <p class="final-score">Score: <span id="final-score">0</span></p>
-        <p class="final-level">Reached Level <span id="final-level">1</span></p>
-        <button id="btn-restart" class="btn-primary">PLAY AGAIN</button>
-        <button id="btn-menu" class="btn-secondary">MAIN MENU</button>
-      </div>
-    </div>
-
-    <div id="level-banner" class="level-banner"></div>
   </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/entities.js"></script>
-  <script src="js/renderer.js"></script>
-  <script src="js/spawner.js"></script>
-  <script src="js/game.js"></script>
-  <script src="js/main.js"></script>
+  <!-- ─────────────── LEGEND ─────────────── -->
+  <div id="legend">
+    <span class="legend-item legend-shoot">&#9671; SHOOT TO DESTROY</span>
+    <span class="legend-sep">|</span>
+    <span class="legend-item legend-hazard">&#9711; INDESTRUCTIBLE — EVADE!</span>
+    <span class="legend-sep">|</span>
+    <span class="legend-hint">P = Pause</span>
+  </div>
+
+  <!-- ─────────────── CANVAS ─────────────── -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ─────────────── LEVEL BANNER ─────────────── -->
+  <div id="level-banner" class="level-banner"></div>
+
+  <!-- ═══════ SCREEN: Title ═══════ -->
+  <div id="title-screen" class="overlay active">
+    <div class="overlay-box title-box">
+      <div class="logo-icon">✈️</div>
+      <h1>PLAINER<br/><span class="accent">SHOOTER</span></h1>
+      <p class="subtitle">Survive the skies. Destroy everything.</p>
+      <div class="controls-hint">
+        <div class="key-row"><kbd>← →</kbd><span>Move</span></div>
+        <div class="key-row"><kbd>SPACE</kbd><span>Shoot</span></div>
+        <div class="key-row"><kbd>P</kbd><span>Pause</span></div>
+      </div>
+      <button id="btn-pick-difficulty" class="btn-primary">SELECT DIFFICULTY</button>
+    </div>
+  </div>
+
+  <!-- ═══════ SCREEN: Difficulty Selection ═══════ -->
+  <div id="difficulty-screen" class="overlay">
+    <div class="overlay-box diff-select-box">
+      <h2 class="diff-screen-title">CHOOSE DIFFICULTY</h2>
+      <div class="diff-cards">
+
+        <button class="diff-card" id="card-easy" data-diff="easy">
+          <span class="diff-card-emoji">🟢</span>
+          <span class="diff-card-label">EASY</span>
+          <ul class="diff-card-stats">
+            <li>3 lives</li>
+            <li>Slow objects</li>
+            <li>Mostly shootable</li>
+            <li>Max 4 at once</li>
+          </ul>
+          <span class="diff-card-tag tag-easy">BEGINNER</span>
+        </button>
+
+        <button class="diff-card featured" id="card-medium" data-diff="medium">
+          <span class="diff-card-emoji">🟡</span>
+          <span class="diff-card-label">MEDIUM</span>
+          <ul class="diff-card-stats">
+            <li>3 lives</li>
+            <li>Medium speed</li>
+            <li>Mixed objects</li>
+            <li>Max 7 at once</li>
+          </ul>
+          <span class="diff-card-tag tag-medium">RECOMMENDED</span>
+        </button>
+
+        <button class="diff-card" id="card-hard" data-diff="hard">
+          <span class="diff-card-emoji">🔴</span>
+          <span class="diff-card-label">HARD</span>
+          <ul class="diff-card-stats">
+            <li>3 lives</li>
+            <li>Fast &amp; frequent</li>
+            <li>Heavy hazards</li>
+            <li>Max 10 at once</li>
+          </ul>
+          <span class="diff-card-tag tag-hard">CHALLENGE</span>
+        </button>
+
+      </div>
+      <button id="btn-back-title" class="btn-secondary back-btn">← BACK</button>
+    </div>
+  </div>
+
+  <!-- ═══════ SCREEN: Pause ═══════ -->
+  <div id="pause-screen" class="overlay">
+    <div class="overlay-box compact">
+      <h2>PAUSED</h2>
+      <p class="sub-label" id="pause-diff-label"></p>
+      <button id="btn-resume"        class="btn-primary">RESUME</button>
+      <button id="btn-restart-pause" class="btn-secondary">RESTART</button>
+      <button id="btn-menu-pause"    class="btn-secondary">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- ═══════ SCREEN: Game Over ═══════ -->
+  <div id="gameover-screen" class="overlay">
+    <div class="overlay-box">
+      <div class="logo-icon">💥</div>
+      <h2>GAME OVER</h2>
+      <p class="sub-label" id="final-diff"></p>
+      <p class="final-score">Score: <span id="final-score">0</span></p>
+      <p class="final-level">Reached Level <span id="final-level">1</span></p>
+      <button id="btn-restart" class="btn-primary">PLAY AGAIN</button>
+      <button id="btn-menu"    class="btn-secondary">MAIN MENU</button>
+    </div>
+  </div>
+
+</div><!-- #game-wrapper -->
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/spawner.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

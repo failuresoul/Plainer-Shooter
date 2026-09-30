@@ -1,12 +1,14 @@
 /**
  * entities.js
  * ─────────────────────────────────────────────────────────────
- * Entity classes: Player, Bullet, Enemy, Particle, Star.
- * Each entity holds its own state and draw logic.
+ * All game entities:  Player · Bullet · Enemy · Particle · Star
+ * Each class owns its own drawing code — no external images needed.
  * ─────────────────────────────────────────────────────────────
  */
 
-// ─── PLAYER ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PLAYER
+// ═══════════════════════════════════════════════════════════════
 class Player {
   constructor(canvasW, canvasH) {
     this.w = 44;
@@ -14,16 +16,14 @@ class Player {
     this.x = canvasW / 2 - this.w / 2;
     this.y = canvasH - this.h - 20;
     this.canvasW = canvasW;
-    this.invincibleFrames = 0; // frames of hit-protection
-    this.thrustAnim = 0;       // for engine flame animation
+    this.invincibleFrames = 0;
+    this.thrustAnim = 0;
   }
 
-  /** Move the player. dx = -1 | 0 | 1. */
   move(dx, speed) {
     this.x = clamp(this.x + dx * speed, 0, this.canvasW - this.w);
   }
 
-  /** Call every frame to tick down invincibility. */
   update() {
     if (this.invincibleFrames > 0) this.invincibleFrames--;
     this.thrustAnim++;
@@ -31,49 +31,46 @@ class Player {
 
   get isInvincible() { return this.invincibleFrames > 0; }
 
-  /** Hitbox (slightly inset for forgiving gameplay). */
+  // Hitbox is inset so small grazes don't feel unfair
   get hitbox() {
-    return { x: this.x + 8, y: this.y + 8, w: this.w - 16, h: this.h - 12 };
+    return { x: this.x + 8, y: this.y + 8, w: this.w - 16, h: this.h - 14 };
   }
 
-  /** Draw the player plane using canvas 2D API. */
   draw(ctx) {
-    const { x, y, w, h, invincibleFrames, thrustAnim } = this;
+    // Blink during invincibility
+    if (this.invincibleFrames > 0 && Math.floor(this.invincibleFrames / 5) % 2 === 0) return;
 
-    // Blink when invincible
-    if (invincibleFrames > 0 && Math.floor(invincibleFrames / 5) % 2 === 0) return;
-
+    const { x, y, w, h, thrustAnim } = this;
     ctx.save();
     ctx.translate(x + w / 2, y + h / 2);
 
-    // Engine flame (animated)
-    const flameH = 14 + Math.sin(thrustAnim * 0.4) * 6;
-    const flameGrad = ctx.createLinearGradient(0, 18, 0, 18 + flameH);
-    flameGrad.addColorStop(0, '#fff5a0');
-    flameGrad.addColorStop(0.4, '#ff9900');
-    flameGrad.addColorStop(1, 'rgba(255,60,0,0)');
-
-    ctx.fillStyle = flameGrad;
+    // Engine flame
+    const flameH  = 14 + Math.sin(thrustAnim * 0.4) * 6;
+    const flameG  = ctx.createLinearGradient(0, 18, 0, 18 + flameH);
+    flameG.addColorStop(0,   '#fff5a0');
+    flameG.addColorStop(0.4, '#ff9900');
+    flameG.addColorStop(1,   'rgba(255,60,0,0)');
+    ctx.fillStyle = flameG;
     ctx.beginPath();
     ctx.moveTo(-7, 18);
-    ctx.lineTo(0, 18 + flameH);
-    ctx.lineTo(7, 18);
+    ctx.lineTo(0,  18 + flameH);
+    ctx.lineTo(7,  18);
     ctx.closePath();
     ctx.fill();
 
-    // Fuselage body
-    const bodyGrad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
-    bodyGrad.addColorStop(0, '#1565c0');
-    bodyGrad.addColorStop(0.5, '#42a5f5');
-    bodyGrad.addColorStop(1, '#1565c0');
-    ctx.fillStyle = bodyGrad;
+    // Fuselage
+    const bodyG = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    bodyG.addColorStop(0,   '#1565c0');
+    bodyG.addColorStop(0.5, '#42a5f5');
+    bodyG.addColorStop(1,   '#1565c0');
+    ctx.fillStyle = bodyG;
     ctx.beginPath();
-    ctx.moveTo(0, -h / 2);          // nose tip
-    ctx.bezierCurveTo(8, -h / 4, 10, 0, 8, h / 4);   // right
-    ctx.lineTo(5, h / 2 - 4);
+    ctx.moveTo(0, -h / 2);
+    ctx.bezierCurveTo( 8, -h / 4,  10, 0,  8, h / 4);
+    ctx.lineTo( 5, h / 2 - 4);
     ctx.lineTo(-5, h / 2 - 4);
     ctx.lineTo(-8, h / 4);
-    ctx.bezierCurveTo(-10, 0, -8, -h / 4, 0, -h / 2); // left
+    ctx.bezierCurveTo(-10, 0, -8, -h / 4, 0, -h / 2);
     ctx.closePath();
     ctx.fill();
 
@@ -96,28 +93,22 @@ class Player {
     ctx.closePath();
     ctx.fill();
 
-    // Wing accent stripe (light)
+    // Wing highlight stripes
     ctx.strokeStyle = 'rgba(100,180,255,0.6)';
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(-w / 2 + 4, 14);
-    ctx.lineTo(-10, 6);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(w / 2 - 4, 14);
-    ctx.lineTo(10, 6);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-w / 2 + 4, 14); ctx.lineTo(-10, 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo( w / 2 - 4, 14); ctx.lineTo( 10, 6); ctx.stroke();
 
     // Cockpit
-    const cpGrad = ctx.createRadialGradient(-1, -8, 1, 0, -6, 10);
-    cpGrad.addColorStop(0, '#a0d4ff');
-    cpGrad.addColorStop(1, '#0d47a1');
-    ctx.fillStyle = cpGrad;
+    const cpG = ctx.createRadialGradient(-1, -8, 1, 0, -6, 10);
+    cpG.addColorStop(0, '#a0d4ff');
+    cpG.addColorStop(1, '#0d47a1');
+    ctx.fillStyle = cpG;
     ctx.beginPath();
     ctx.ellipse(0, -8, 5, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Nose tip highlight
+    // Nose highlight
     ctx.fillStyle = 'rgba(200,230,255,0.4)';
     ctx.beginPath();
     ctx.ellipse(-1.5, -h / 2 + 4, 1.5, 4, -0.2, 0, Math.PI * 2);
@@ -127,7 +118,9 @@ class Player {
   }
 }
 
-// ─── BULLET ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// BULLET
+// ═══════════════════════════════════════════════════════════════
 class Bullet {
   constructor(x, y) {
     this.w = 4;
@@ -147,20 +140,20 @@ class Bullet {
   }
 
   draw(ctx) {
+    // Glowing missile trail
     const grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.h);
-    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0,   '#ffffff');
     grad.addColorStop(0.3, '#00eeff');
-    grad.addColorStop(1, 'rgba(0,200,255,0)');
-
+    grad.addColorStop(1,   'rgba(0,200,255,0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.roundRect(this.x, this.y, this.w, this.h, 2);
     ctx.fill();
 
-    // Glow
+    // Outer glow
     ctx.shadowColor = '#00d4ff';
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = 'rgba(0,212,255,0.4)';
+    ctx.shadowBlur  = 8;
+    ctx.fillStyle   = 'rgba(0,212,255,0.35)';
     ctx.beginPath();
     ctx.roundRect(this.x - 1, this.y, this.w + 2, this.h, 2);
     ctx.fill();
@@ -168,123 +161,139 @@ class Bullet {
   }
 }
 
-// ─── ENEMY TYPES ──────────────────────────────────────────────
-//
+// ═══════════════════════════════════════════════════════════════
+// MUZZLE FLASH  (spawned by Game on each shot, lives ~8 frames)
+// ═══════════════════════════════════════════════════════════════
+class MuzzleFlash {
+  constructor(x, y) {
+    this.x    = x;
+    this.y    = y;
+    this.life = 8;
+    this.max  = 8;
+    this.active = true;
+  }
+
+  update() {
+    this.life--;
+    if (this.life <= 0) this.active = false;
+  }
+
+  draw(ctx) {
+    const t = this.life / this.max;
+    ctx.save();
+    ctx.globalAlpha = t;
+    // Bright cyan star-burst
+    const r = 10 * t;
+    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.4, '#00eeff');
+    g.addColorStop(1, 'rgba(0,180,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENEMY TYPE DEFINITIONS
 // shootable: true  → missiles destroy it, score increases
-// shootable: false → missiles pass through, object keeps moving
-//
+// shootable: false → missiles vanish on contact, object lives on
+// ═══════════════════════════════════════════════════════════════
 const ENEMY_TYPES = {
 
-  // ── SHOOTABLE enemies (angular / aggressive look) ────────────
+  // ── Shootable ────────────────────────────────────────────────
   basic: {
-    key: 'basic',
-    label: 'Scout',
+    key: 'basic', label: 'Scout',
     shootable: true,
-    w: 36, h: 32,
-    hp: 1,
-    scoreValue: 1, // multiplied by difficulty scorePerKill
-    color: '#ff4444',
-    accentColor: '#ff8888',
+    w: 36, h: 32, hp: 1, scoreValue: 1,
+    color: '#ff4444', accentColor: '#ff8888',
     shape: 'diamond',
   },
   tank: {
-    key: 'tank',
-    label: 'Tank',
+    key: 'tank', label: 'Tank',
     shootable: true,
-    w: 48, h: 40,
-    hp: 3,
-    scoreValue: 3,
-    color: '#ff8800',
-    accentColor: '#ffcc44',
+    w: 48, h: 40, hp: 3, scoreValue: 3,
+    color: '#ff8800', accentColor: '#ffcc44',
     shape: 'hexagon',
   },
   speeder: {
-    key: 'speeder',
-    label: 'Speeder',
+    key: 'speeder', label: 'Speeder',
     shootable: true,
-    w: 28, h: 44,
-    hp: 1,
-    scoreValue: 2,
-    color: '#cc44ff',
-    accentColor: '#ee88ff',
-    shape: 'arrow',
-    speedMult: 1.8,
+    w: 28, h: 44, hp: 1, scoreValue: 2,
+    color: '#cc44ff', accentColor: '#ee88ff',
+    shape: 'arrow', speedMult: 1.8,
   },
   boss: {
-    key: 'boss',
-    label: 'BOSS',
+    key: 'boss', label: 'BOSS',
     shootable: true,
-    w: 80, h: 64,
-    hp: 15,
-    scoreValue: 15,
-    color: '#ff0055',
-    accentColor: '#ff5599',
-    shape: 'boss',
-    speedMult: 0.5,
+    w: 80, h: 64, hp: 15, scoreValue: 15,
+    color: '#ff0055', accentColor: '#ff5599',
+    shape: 'boss', speedMult: 0.5,
   },
 
-  // ── NON-SHOOTABLE hazards (rounded / natural look) ───────────
-  // Missiles pass through these — they still crash the plane!
-
+  // ── Non-shootable hazards ─────────────────────────────────────
   asteroid: {
-    key: 'asteroid',
-    label: 'Asteroid',
-    shootable: false,          // ← missiles pass through
-    w: 44, h: 44,
-    hp: 999,                   // effectively invincible
-    scoreValue: 0,
-    color: '#c8a040',
-    accentColor: '#e8c060',
-    shape: 'asteroid',
-    speedMult: 0.9,
+    key: 'asteroid', label: 'Asteroid',
+    shootable: false,
+    w: 44, h: 44, hp: 999, scoreValue: 0,
+    color: '#c8a040', accentColor: '#e8c060',
+    shape: 'asteroid', speedMult: 0.9,
   },
   barrier: {
-    key: 'barrier',
-    label: 'Energy Wall',
-    shootable: false,          // ← missiles pass through
-    w: 64, h: 20,
-    hp: 999,
-    scoreValue: 0,
-    color: '#00ffaa',
-    accentColor: '#00cc88',
-    shape: 'barrier',
-    speedMult: 0.7,
+    key: 'barrier', label: 'Energy Wall',
+    shootable: false,
+    w: 64, h: 20, hp: 999, scoreValue: 0,
+    color: '#00ffaa', accentColor: '#00cc88',
+    shape: 'barrier', speedMult: 0.7,
   },
 };
 
+// ═══════════════════════════════════════════════════════════════
+// ENEMY
+// ═══════════════════════════════════════════════════════════════
 class Enemy {
   constructor(type, x, speed) {
     const def = ENEMY_TYPES[type] || ENEMY_TYPES.basic;
     Object.assign(this, def);
     this.x = x;
-    this.y = -def.h;
+    this.y = -def.h;          // start just above the canvas
     this.speed = speed * (def.speedMult || 1);
     this.active = true;
     this.maxHp = def.hp;
-    this.flashFrames = 0;    // brief white flash on hit
-    this.wobble = randFloat(0, Math.PI * 2); // offset for sine wobble
+    this.flashFrames = 0;
+    this.wobble = randFloat(0, Math.PI * 2);
   }
 
   update(frame) {
     this.y += this.speed;
     if (this.flashFrames > 0) this.flashFrames--;
-    // Speeder wobbles side-to-side
+    // Speeder weaves side-to-side
     if (this.shape === 'arrow') {
       this.x += Math.sin(frame * 0.08 + this.wobble) * 1.2;
+      this.x  = clamp(this.x, 0, CANVAS_W - this.w);
     }
     if (this.y > CANVAS_H + this.h) this.active = false;
   }
 
+  /**
+   * Apply damage.  Only ever called when shootable === true.
+   * Returns true if the object is destroyed.
+   */
   hit(dmg = 1) {
+    if (!this.shootable) return false;   // safety guard — should never reach here
     this.hp -= dmg;
     this.flashFrames = 6;
     if (this.hp <= 0) {
       this.active = false;
-      return true; // destroyed
+      return true;
     }
     return false;
   }
 
+  // Hitbox inset a few px on each side for fair collision
   get hitbox() {
     return { x: this.x + 4, y: this.y + 4, w: this.w - 8, h: this.h - 8 };
   }
@@ -298,21 +307,19 @@ class Enemy {
     const acc   = flash ? '#ffffff' : this.accentColor;
 
     switch (this.shape) {
-      case 'diamond':  this._drawDiamond(ctx, fill, acc); break;
-      case 'hexagon':  this._drawHexagon(ctx, fill, acc); break;
-      case 'arrow':    this._drawArrow(ctx, fill, acc); break;
-      case 'boss':     this._drawBoss(ctx, fill, acc, frame); break;
+      case 'diamond':  this._drawDiamond (ctx, fill, acc);        break;
+      case 'hexagon':  this._drawHexagon (ctx, fill, acc);        break;
+      case 'arrow':    this._drawArrow   (ctx, fill, acc);        break;
+      case 'boss':     this._drawBoss    (ctx, fill, acc, frame); break;
       case 'asteroid': this._drawAsteroid(ctx, fill, acc, frame); break;
-      case 'barrier':  this._drawBarrier(ctx, fill, acc, frame); break;
-      default:         this._drawDiamond(ctx, fill, acc);
+      case 'barrier':  this._drawBarrier (ctx, fill, acc, frame); break;
+      default:         this._drawDiamond (ctx, fill, acc);
     }
 
-    // HP bar for shootable multi-hp enemies only
-    if (this.shootable && this.maxHp > 1 && this.maxHp < 999) {
-      const bw = this.w - 4;
-      const bh = 4;
-      const bx = -bw / 2;
-      const by = this.h / 2 - 2;
+    // HP bar — only for shootable multi-hp enemies
+    if (this.shootable && this.maxHp > 1 && this.maxHp < 50) {
+      const bw = this.w - 4, bh = 4;
+      const bx = -bw / 2, by = this.h / 2 - 2;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(bx, by, bw, bh);
       ctx.fillStyle = this.hp / this.maxHp > 0.5 ? '#00e58a' : '#ff3c5f';
@@ -320,67 +327,44 @@ class Enemy {
     }
 
     // Shield badge on non-shootable objects
-    if (!this.shootable) {
-      this._drawShieldBadge(ctx, frame);
-    }
+    if (!this.shootable) this._drawShieldBadge(ctx, frame);
 
     ctx.restore();
   }
+
+  // ── Individual shape renderers ──────────────────────────────
 
   _drawDiamond(ctx, fill, acc) {
     const hw = this.w / 2 - 2, hh = this.h / 2 - 2;
     ctx.fillStyle = fill;
     ctx.beginPath();
-    ctx.moveTo(0, -hh);
-    ctx.lineTo(hw, 0);
-    ctx.lineTo(0, hh);
-    ctx.lineTo(-hw, 0);
-    ctx.closePath();
-    ctx.fill();
-    // inner accent
+    ctx.moveTo(0, -hh); ctx.lineTo(hw, 0); ctx.lineTo(0, hh); ctx.lineTo(-hw, 0);
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = acc;
     ctx.beginPath();
-    ctx.moveTo(0, -hh + 6);
-    ctx.lineTo(hw - 6, 0);
-    ctx.lineTo(0, hh - 6);
-    ctx.lineTo(-hw + 6, 0);
-    ctx.closePath();
-    ctx.fill();
-    // center
+    ctx.moveTo(0, -hh + 6); ctx.lineTo(hw - 6, 0); ctx.lineTo(0, hh - 6); ctx.lineTo(-hw + 6, 0);
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
   }
 
   _drawHexagon(ctx, fill, acc) {
-    const r = Math.min(this.w, this.h) / 2 - 2;
-    ctx.fillStyle = fill;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6;
-      i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
-              : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = acc;
+    const r  = Math.min(this.w, this.h) / 2 - 2;
     const r2 = r - 6;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = (Math.PI / 3) * i - Math.PI / 6;
-      i === 0 ? ctx.moveTo(Math.cos(a) * r2, Math.sin(a) * r2)
-              : ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
-    }
-    ctx.closePath();
-    ctx.fill();
-    // bolts
+    [r, r2].forEach((radius, i) => {
+      ctx.fillStyle = i === 0 ? fill : acc;
+      ctx.beginPath();
+      for (let j = 0; j < 6; j++) {
+        const a = (Math.PI / 3) * j - Math.PI / 6;
+        j === 0 ? ctx.moveTo(Math.cos(a) * radius, Math.sin(a) * radius)
+                : ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius);
+      }
+      ctx.closePath(); ctx.fill();
+    });
     ctx.fillStyle = '#fff';
     for (let i = 0; i < 6; i++) {
       const a = (Math.PI / 3) * i;
-      ctx.beginPath();
-      ctx.arc(Math.cos(a) * (r - 3), Math.sin(a) * (r - 3), 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(Math.cos(a) * (r - 3), Math.sin(a) * (r - 3), 2, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -388,253 +372,181 @@ class Enemy {
     const hw = this.w / 2 - 2, hh = this.h / 2 - 2;
     ctx.fillStyle = fill;
     ctx.beginPath();
-    ctx.moveTo(0, hh);              // bottom tip (coming down)
-    ctx.lineTo(hw, -hh + 10);
-    ctx.lineTo(hw - 8, -hh + 10);
-    ctx.lineTo(0, -hh + 20);
-    ctx.lineTo(-hw + 8, -hh + 10);
-    ctx.lineTo(-hw, -hh + 10);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(0, hh);
+    ctx.lineTo( hw,      -hh + 10); ctx.lineTo( hw - 8, -hh + 10);
+    ctx.lineTo(0,        -hh + 20);
+    ctx.lineTo(-hw + 8,  -hh + 10); ctx.lineTo(-hw,     -hh + 10);
+    ctx.closePath(); ctx.fill();
     ctx.fillStyle = acc;
     ctx.beginPath();
-    ctx.moveTo(0, hh - 6);
-    ctx.lineTo(6, -hh + 14);
-    ctx.lineTo(-6, -hh + 14);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(0, hh - 6); ctx.lineTo(6, -hh + 14); ctx.lineTo(-6, -hh + 14);
+    ctx.closePath(); ctx.fill();
   }
 
   _drawBoss(ctx, fill, acc, frame) {
     const hw = this.w / 2 - 2, hh = this.h / 2 - 2;
-
-    // Body
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.moveTo(0, hh);
-    ctx.bezierCurveTo(hw * 0.6, hh * 0.8, hw, hh * 0.3, hw, 0);
-    ctx.bezierCurveTo(hw, -hh * 0.5, hw * 0.4, -hh, 0, -hh);
-    ctx.bezierCurveTo(-hw * 0.4, -hh, -hw, -hh * 0.5, -hw, 0);
-    ctx.bezierCurveTo(-hw, hh * 0.3, -hw * 0.6, hh * 0.8, 0, hh);
+    ctx.bezierCurveTo( hw * 0.6,  hh * 0.8,  hw, hh * 0.3,  hw, 0);
+    ctx.bezierCurveTo( hw,       -hh * 0.5,  hw * 0.4, -hh, 0, -hh);
+    ctx.bezierCurveTo(-hw * 0.4, -hh,       -hw, -hh * 0.5, -hw, 0);
+    ctx.bezierCurveTo(-hw,        hh * 0.3, -hw * 0.6, hh * 0.8, 0, hh);
     ctx.fill();
-
     // Side fins
     ctx.fillStyle = acc;
-    ctx.beginPath();
-    ctx.moveTo(hw - 4, -hh * 0.3);
-    ctx.lineTo(hw + 14, 4);
-    ctx.lineTo(hw - 4, hh * 0.3);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-hw + 4, -hh * 0.3);
-    ctx.lineTo(-hw - 14, 4);
-    ctx.lineTo(-hw + 4, hh * 0.3);
-    ctx.closePath();
-    ctx.fill();
-
-    // Pulsing center eye
+    [[hw - 4, hw + 14], [-hw + 4, -hw - 14]].forEach(([ax, bx]) => {
+      ctx.beginPath();
+      ctx.moveTo(ax, -hh * 0.3); ctx.lineTo(bx, 4); ctx.lineTo(ax, hh * 0.3);
+      ctx.closePath(); ctx.fill();
+    });
+    // Pulsing eye
     const pulse = 0.7 + 0.3 * Math.sin(frame * 0.1);
-    const eyeGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 14 * pulse);
-    eyeGrad.addColorStop(0, '#ffffff');
-    eyeGrad.addColorStop(0.4, '#ff8800');
-    eyeGrad.addColorStop(1, 'rgba(255,0,80,0)');
-    ctx.fillStyle = eyeGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, 14 * pulse, 0, Math.PI * 2);
-    ctx.fill();
-
+    const eyeG  = ctx.createRadialGradient(0, 0, 0, 0, 0, 14 * pulse);
+    eyeG.addColorStop(0, '#ffffff'); eyeG.addColorStop(0.4, '#ff8800'); eyeG.addColorStop(1, 'rgba(255,0,80,0)');
+    ctx.fillStyle = eyeG;
+    ctx.beginPath(); ctx.arc(0, 0, 14 * pulse, 0, Math.PI * 2); ctx.fill();
     // Cannons
     [-20, 0, 20].forEach(ox => {
-      ctx.fillStyle = '#330011';
-      ctx.fillRect(ox - 3, hh - 8, 6, 12);
-      ctx.fillStyle = '#ff0055';
-      ctx.beginPath();
-      ctx.arc(ox, hh + 4, 3, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = '#330011'; ctx.fillRect(ox - 3, hh - 8, 6, 12);
+      ctx.fillStyle = '#ff0055'; ctx.beginPath(); ctx.arc(ox, hh + 4, 3, 0, Math.PI * 2); ctx.fill();
     });
   }
 
-  // ── Non-shootable: rocky tumbling asteroid ────────────────────
   _drawAsteroid(ctx, fill, acc, frame) {
-    const r = this.w / 2 - 2;
-    // Slowly rotate the asteroid
+    const r      = this.w / 2 - 2;
+    const bumps  = [1.0, 0.75, 0.95, 0.65, 0.85, 0.70, 1.0, 0.80, 0.90];
     ctx.rotate(frame * 0.015);
-
-    // Bumpy asteroid body — irregular polygon
-    const points = 9;
-    const bumps = [1.0, 0.75, 0.95, 0.65, 0.85, 0.70, 1.0, 0.80, 0.90];
-    const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.2, 1, 0, 0, r);
-    bodyGrad.addColorStop(0, acc);
-    bodyGrad.addColorStop(0.5, fill);
-    bodyGrad.addColorStop(1, '#5a3800');
-    ctx.fillStyle = bodyGrad;
+    const g = ctx.createRadialGradient(-r * 0.2, -r * 0.2, 1, 0, 0, r);
+    g.addColorStop(0, acc); g.addColorStop(0.5, fill); g.addColorStop(1, '#5a3800');
+    ctx.fillStyle = g;
     ctx.beginPath();
-    for (let i = 0; i < points; i++) {
-      const angle = (Math.PI * 2 * i) / points - Math.PI / 2;
-      const rad   = r * bumps[i];
-      const px    = Math.cos(angle) * rad;
-      const py    = Math.sin(angle) * rad;
+    bumps.forEach((b, i) => {
+      const angle = (Math.PI * 2 * i) / bumps.length - Math.PI / 2;
+      const px = Math.cos(angle) * r * b, py = Math.sin(angle) * r * b;
       i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    // Crater detail
-    ctx.strokeStyle = 'rgba(80,40,0,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(-r * 0.25, -r * 0.2, r * 0.28, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(r * 0.3, r * 0.25, r * 0.18, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Bright highlight
+    });
+    ctx.closePath(); ctx.fill();
+    // Craters
+    ctx.strokeStyle = 'rgba(80,40,0,0.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.2, r * 0.28, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc( r * 0.30,  r * 0.25, r * 0.18, 0, Math.PI * 2); ctx.stroke();
+    // Highlight
     ctx.fillStyle = 'rgba(255,220,100,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2); ctx.fill();
   }
 
-  // ── Non-shootable: horizontal energy barrier ──────────────────
   _drawBarrier(ctx, fill, acc, frame) {
-    const hw = this.w / 2 - 2;
-    const hh = this.h / 2 - 2;
+    const hw = this.w / 2 - 2, hh = this.h / 2 - 2;
     const pulse = 0.6 + 0.4 * Math.sin(frame * 0.12);
-
     // Outer glow
-    const glowGrad = ctx.createLinearGradient(-hw, 0, hw, 0);
-    glowGrad.addColorStop(0, 'rgba(0,255,170,0)');
-    glowGrad.addColorStop(0.2, `rgba(0,255,170,${0.3 * pulse})`);
-    glowGrad.addColorStop(0.5, `rgba(0,255,170,${0.5 * pulse})`);
-    glowGrad.addColorStop(0.8, `rgba(0,255,170,${0.3 * pulse})`);
-    glowGrad.addColorStop(1, 'rgba(0,255,170,0)');
-    ctx.fillStyle = glowGrad;
+    const gG = ctx.createLinearGradient(-hw, 0, hw, 0);
+    gG.addColorStop(0,   'rgba(0,255,170,0)');
+    gG.addColorStop(0.2, `rgba(0,255,170,${0.3 * pulse})`);
+    gG.addColorStop(0.5, `rgba(0,255,170,${0.5 * pulse})`);
+    gG.addColorStop(0.8, `rgba(0,255,170,${0.3 * pulse})`);
+    gG.addColorStop(1,   'rgba(0,255,170,0)');
+    ctx.fillStyle = gG;
     ctx.fillRect(-hw - 4, -hh - 6, (hw + 4) * 2, (hh + 6) * 2);
-
     // Core bar
-    const coreGrad = ctx.createLinearGradient(0, -hh, 0, hh);
-    coreGrad.addColorStop(0, acc);
-    coreGrad.addColorStop(0.5, '#ffffff');
-    coreGrad.addColorStop(1, acc);
-    ctx.fillStyle = coreGrad;
-    ctx.beginPath();
-    ctx.roundRect(-hw, -hh, hw * 2, hh * 2, hh);
-    ctx.fill();
-
-    // Scan-line animation
+    const cG = ctx.createLinearGradient(0, -hh, 0, hh);
+    cG.addColorStop(0, acc); cG.addColorStop(0.5, '#ffffff'); cG.addColorStop(1, acc);
+    ctx.fillStyle = cG;
+    ctx.beginPath(); ctx.roundRect(-hw, -hh, hw * 2, hh * 2, hh); ctx.fill();
+    // Scan line
     const scanX = -hw + ((frame * 3) % (hw * 2));
     ctx.fillStyle = `rgba(255,255,255,${0.6 * pulse})`;
     ctx.fillRect(scanX, -hh + 1, 4, hh * 2 - 2);
-
-    // End caps (hexagonal nodes)
+    // End nodes
     [-hw, hw].forEach(cx => {
-      ctx.fillStyle = '#003322';
-      ctx.beginPath();
-      ctx.arc(cx, 0, hh + 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = acc;
-      ctx.beginPath();
-      ctx.arc(cx, 0, hh - 1, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = '#003322'; ctx.beginPath(); ctx.arc(cx, 0, hh + 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = acc;       ctx.beginPath(); ctx.arc(cx, 0, hh - 1, 0, Math.PI * 2); ctx.fill();
     });
   }
 
-  // ── Shared: small shield badge (warns player: can't shoot) ────
+  // Pulsing shield icon in corner — tells player "cannot shoot this"
   _drawShieldBadge(ctx, frame) {
     const pulse = 0.8 + 0.2 * Math.sin(frame * 0.18);
-    const bx = this.w / 2 - 10;
-    const by = -this.h / 2 + 2;
-
-    // Badge circle
+    const bx = this.w / 2 - 10, by = -this.h / 2 + 2;
     ctx.fillStyle = `rgba(0,0,0,${0.75 * pulse})`;
-    ctx.beginPath();
-    ctx.arc(bx, by, 9, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Shield outline
-    ctx.strokeStyle = `rgba(0,255,170,${pulse})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(bx, by, 8, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Shield icon (mini shield path)
+    ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(0,255,170,${pulse})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(bx, by, 8, 0, Math.PI * 2); ctx.stroke();
+    // Mini shield path
     ctx.fillStyle = `rgba(0,255,170,${pulse})`;
     ctx.beginPath();
     ctx.moveTo(bx, by - 5);
-    ctx.lineTo(bx + 4, by - 3);
-    ctx.lineTo(bx + 4, by + 1);
+    ctx.lineTo(bx + 4, by - 3); ctx.lineTo(bx + 4, by + 1);
     ctx.quadraticCurveTo(bx + 4, by + 5, bx, by + 6);
     ctx.quadraticCurveTo(bx - 4, by + 5, bx - 4, by + 1);
     ctx.lineTo(bx - 4, by - 3);
-    ctx.closePath();
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
   }
 }
 
-
-// ─── PARTICLE ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PARTICLE  (explosion debris and absorb sparks)
+// ═══════════════════════════════════════════════════════════════
 class Particle {
   constructor(x, y, color) {
-    this.x = x;
-    this.y = y;
-    this.vx = randFloat(-3, 3);
-    this.vy = randFloat(-4, 1);
+    this.x    = x;
+    this.y    = y;
+    this.vx   = randFloat(-3, 3);
+    this.vy   = randFloat(-4, 1);
     this.life = PARTICLE_LIFE;
-    this.maxLife = PARTICLE_LIFE;
+    this.max  = PARTICLE_LIFE;
     this.size = randFloat(2, 6);
-    this.color = color || '#ff9900';
+    this.color= color || '#ff9900';
     this.active = true;
   }
 
   update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.vy += 0.12; // gravity
+    this.x  += this.vx;
+    this.y  += this.vy;
+    this.vy += 0.12;   // gravity
     this.vx *= 0.96;
     this.life--;
     if (this.life <= 0) this.active = false;
   }
 
   draw(ctx) {
-    const alpha = this.life / this.maxLife;
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = this.color;
+    const a = this.life / this.max;
+    ctx.globalAlpha = a;
+    ctx.fillStyle   = this.color;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.size * a, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
 }
 
-// ─── STAR (background) ───────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// STAR  (scrolling background decoration)
+// ═══════════════════════════════════════════════════════════════
 class Star {
-  constructor(canvasW, canvasH) {
-    this.canvasW = canvasW;
-    this.canvasH = canvasH;
-    this.reset(true);
+  constructor(cw, ch) {
+    this.cw = cw; this.ch = ch;
+    this._reset(true);
   }
 
-  reset(init = false) {
-    this.x = randFloat(0, this.canvasW);
-    this.y = init ? randFloat(0, this.canvasH) : 0;
+  _reset(init = false) {
+    this.x     = randFloat(0, this.cw);
+    this.y     = init ? randFloat(0, this.ch) : 0;
     this.speed = randFloat(0.5, 2.5);
-    this.radius = randFloat(0.5, 2);
+    this.r     = randFloat(0.5, 2);
     this.alpha = randFloat(0.3, 1);
   }
 
   update() {
     this.y += this.speed;
-    if (this.y > this.canvasH) this.reset();
+    if (this.y > this.ch) this._reset();
   }
 
   draw(ctx) {
     ctx.globalAlpha = this.alpha;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle   = '#ffffff';
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }

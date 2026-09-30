@@ -1,82 +1,74 @@
 /**
- * main.js
- * ─────────────────────────────────────────────────────────────
- * Entry point. Wires up the Game instance with all UI buttons.
+ * main.js — entry point.
  *
  * Screen flow:
- *   title-screen  ──► difficulty-screen  ──► [game starts]
- *                                            ──► pause-screen
- *                                            ──► gameover-screen
- * ─────────────────────────────────────────────────────────────
+ *   title-screen  →  difficulty-screen  →  [game running]
+ *                                       →  pause-screen  →  [resume / restart / menu]
+ *                                       →  gameover-screen  →  [play again / menu]
  */
-
 (function () {
   'use strict';
 
   const canvas = document.getElementById('game-canvas');
   const game   = new Game(canvas);
 
-  // ── Helper: show a single overlay ────────────────────────────
+  // ── Utility ───────────────────────────────────────────────
   function showScreen(id) {
     document.querySelectorAll('.overlay').forEach(o => o.classList.remove('active'));
     if (id) document.getElementById(id).classList.add('active');
   }
 
-  // ── SCREEN 1: Title ──────────────────────────────────────────
-  document.getElementById('btn-pick-difficulty').addEventListener('click', () => {
-    showScreen('difficulty-screen');
-  });
-
-  // ── SCREEN 2: Difficulty cards ───────────────────────────────
-  document.querySelectorAll('.diff-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const diff = card.dataset.diff;
-      showScreen(null);                 // hide all overlays
-      _startGame(diff);
-    });
-  });
-
-  document.getElementById('btn-back-title').addEventListener('click', () => {
-    showScreen('title-screen');
-  });
-
-  // ── SCREEN 3: Pause ──────────────────────────────────────────
-  document.getElementById('btn-resume').addEventListener('click', () => {
-    game.resume();
-  });
-
-  document.getElementById('btn-restart-pause').addEventListener('click', () => {
-    _startGame(game.diffKey || 'easy');
-  });
-
-  document.getElementById('btn-menu-pause').addEventListener('click', () => {
-    cancelAnimationFrame(game._rafId);
-    showScreen('title-screen');
-  });
-
-  // ── SCREEN 4: Game Over ───────────────────────────────────────
-  document.getElementById('btn-restart').addEventListener('click', () => {
-    _startGame(game.diffKey || 'easy');
-  });
-
-  document.getElementById('btn-menu').addEventListener('click', () => {
-    cancelAnimationFrame(game._rafId);
-    showScreen('title-screen');
-  });
-
-  // ── Start game helper ─────────────────────────────────────────
-  function _startGame(diffKey) {
+  function startGame(diffKey) {
     const cfg = DIFFICULTY[diffKey];
-    // Populate pause & game-over difficulty labels
-    const label = cfg ? cfg.emoji + ' ' + cfg.label : '';
+    if (!cfg) { console.error('Unknown difficulty:', diffKey); return; }
+    // Pre-fill pause + gameover difficulty labels
+    const label = cfg.emoji + ' ' + cfg.label;
     document.getElementById('pause-diff-label').textContent = label;
     document.getElementById('final-diff').textContent       = label;
-
+    showScreen(null);   // hide all overlays before game starts
     game.start(diffKey);
   }
 
-  // ── Canvas resize on window change ───────────────────────────
-  window.addEventListener('resize', () => {
-    game.renderer.resize();
+  // ── Title screen ──────────────────────────────────────────
+  document.getElementById('btn-pick-difficulty')
+    .addEventListener('click', () => showScreen('difficulty-screen'));
+
+  // ── Difficulty cards ──────────────────────────────────────
+  document.querySelectorAll('.diff-card').forEach(card => {
+    card.addEventListener('click', () => startGame(card.dataset.diff));
   });
+
+  document.getElementById('btn-back-title')
+    .addEventListener('click', () => showScreen('title-screen'));
+
+  // ── Pause screen ──────────────────────────────────────────
+  document.getElementById('btn-resume')
+    .addEventListener('click', () => game.resume());
+
+  document.getElementById('btn-restart-pause')
+    .addEventListener('click', () => startGame(game.diffKey || 'easy'));
+
+  document.getElementById('btn-menu-pause')
+    .addEventListener('click', () => {
+      if (game._rafId !== null) cancelAnimationFrame(game._rafId);
+      game._rafId = null;
+      game.state  = 'idle';
+      showScreen('title-screen');
+    });
+
+  // ── Game-over screen ──────────────────────────────────────
+  document.getElementById('btn-restart')
+    .addEventListener('click', () => startGame(game.diffKey || 'easy'));
+
+  document.getElementById('btn-menu')
+    .addEventListener('click', () => {
+      if (game._rafId !== null) cancelAnimationFrame(game._rafId);
+      game._rafId = null;
+      game.state  = 'idle';
+      showScreen('title-screen');
+    });
+
+  // ── Responsive resize ─────────────────────────────────────
+  window.addEventListener('resize', () => game.renderer.resize());
+
 })();
