@@ -17,8 +17,8 @@ class Renderer {
   resize() {
     this.canvas.width  = CANVAS_W;
     this.canvas.height = CANVAS_H;
-    // Physical size via CSS — keep the canvas centered and contained
-    const scale  = Math.min(window.innerWidth / CANVAS_W, (window.innerHeight - 52) / CANVAS_H);
+    // 74px = HUD (52px) + legend bar (22px)
+    const scale  = Math.min(window.innerWidth / CANVAS_W, (window.innerHeight - 74) / CANVAS_H);
     this.canvas.style.width  = (CANVAS_W * scale) + 'px';
     this.canvas.style.height = (CANVAS_H * scale) + 'px';
   }

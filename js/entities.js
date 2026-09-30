@@ -169,10 +169,17 @@ class Bullet {
 }
 
 // ─── ENEMY TYPES ──────────────────────────────────────────────
+//
+// shootable: true  → missiles destroy it, score increases
+// shootable: false → missiles pass through, object keeps moving
+//
 const ENEMY_TYPES = {
+
+  // ── SHOOTABLE enemies (angular / aggressive look) ────────────
   basic: {
     key: 'basic',
     label: 'Scout',
+    shootable: true,
     w: 36, h: 32,
     hp: 1,
     scoreValue: 1, // multiplied by difficulty scorePerKill
@@ -183,6 +190,7 @@ const ENEMY_TYPES = {
   tank: {
     key: 'tank',
     label: 'Tank',
+    shootable: true,
     w: 48, h: 40,
     hp: 3,
     scoreValue: 3,
@@ -193,6 +201,7 @@ const ENEMY_TYPES = {
   speeder: {
     key: 'speeder',
     label: 'Speeder',
+    shootable: true,
     w: 28, h: 44,
     hp: 1,
     scoreValue: 2,
@@ -204,6 +213,7 @@ const ENEMY_TYPES = {
   boss: {
     key: 'boss',
     label: 'BOSS',
+    shootable: true,
     w: 80, h: 64,
     hp: 15,
     scoreValue: 15,
@@ -211,6 +221,34 @@ const ENEMY_TYPES = {
     accentColor: '#ff5599',
     shape: 'boss',
     speedMult: 0.5,
+  },
+
+  // ── NON-SHOOTABLE hazards (rounded / natural look) ───────────
+  // Missiles pass through these — they still crash the plane!
+
+  asteroid: {
+    key: 'asteroid',
+    label: 'Asteroid',
+    shootable: false,          // ← missiles pass through
+    w: 44, h: 44,
+    hp: 999,                   // effectively invincible
+    scoreValue: 0,
+    color: '#c8a040',
+    accentColor: '#e8c060',
+    shape: 'asteroid',
+    speedMult: 0.9,
+  },
+  barrier: {
+    key: 'barrier',
+    label: 'Energy Wall',
+    shootable: false,          // ← missiles pass through
+    w: 64, h: 20,
+    hp: 999,
+    scoreValue: 0,
+    color: '#00ffaa',
+    accentColor: '#00cc88',
+    shape: 'barrier',
+    speedMult: 0.7,
   },
 };
 
@@ -264,11 +302,13 @@ class Enemy {
       case 'hexagon':  this._drawHexagon(ctx, fill, acc); break;
       case 'arrow':    this._drawArrow(ctx, fill, acc); break;
       case 'boss':     this._drawBoss(ctx, fill, acc, frame); break;
+      case 'asteroid': this._drawAsteroid(ctx, fill, acc, frame); break;
+      case 'barrier':  this._drawBarrier(ctx, fill, acc, frame); break;
       default:         this._drawDiamond(ctx, fill, acc);
     }
 
-    // HP bar for multi-hp enemies
-    if (this.maxHp > 1) {
+    // HP bar for shootable multi-hp enemies only
+    if (this.shootable && this.maxHp > 1 && this.maxHp < 999) {
       const bw = this.w - 4;
       const bh = 4;
       const bx = -bw / 2;
@@ -277,6 +317,11 @@ class Enemy {
       ctx.fillRect(bx, by, bw, bh);
       ctx.fillStyle = this.hp / this.maxHp > 0.5 ? '#00e58a' : '#ff3c5f';
       ctx.fillRect(bx, by, bw * (this.hp / this.maxHp), bh);
+    }
+
+    // Shield badge on non-shootable objects
+    if (!this.shootable) {
+      this._drawShieldBadge(ctx, frame);
     }
 
     ctx.restore();
@@ -409,7 +454,126 @@ class Enemy {
       ctx.fill();
     });
   }
+
+  // ── Non-shootable: rocky tumbling asteroid ────────────────────
+  _drawAsteroid(ctx, fill, acc, frame) {
+    const r = this.w / 2 - 2;
+    // Slowly rotate the asteroid
+    ctx.rotate(frame * 0.015);
+
+    // Bumpy asteroid body — irregular polygon
+    const points = 9;
+    const bumps = [1.0, 0.75, 0.95, 0.65, 0.85, 0.70, 1.0, 0.80, 0.90];
+    const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.2, 1, 0, 0, r);
+    bodyGrad.addColorStop(0, acc);
+    bodyGrad.addColorStop(0.5, fill);
+    bodyGrad.addColorStop(1, '#5a3800');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    for (let i = 0; i < points; i++) {
+      const angle = (Math.PI * 2 * i) / points - Math.PI / 2;
+      const rad   = r * bumps[i];
+      const px    = Math.cos(angle) * rad;
+      const py    = Math.sin(angle) * rad;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Crater detail
+    ctx.strokeStyle = 'rgba(80,40,0,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(-r * 0.25, -r * 0.2, r * 0.28, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(r * 0.3, r * 0.25, r * 0.18, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Bright highlight
+    ctx.fillStyle = 'rgba(255,220,100,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.22, r * 0.14, -0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Non-shootable: horizontal energy barrier ──────────────────
+  _drawBarrier(ctx, fill, acc, frame) {
+    const hw = this.w / 2 - 2;
+    const hh = this.h / 2 - 2;
+    const pulse = 0.6 + 0.4 * Math.sin(frame * 0.12);
+
+    // Outer glow
+    const glowGrad = ctx.createLinearGradient(-hw, 0, hw, 0);
+    glowGrad.addColorStop(0, 'rgba(0,255,170,0)');
+    glowGrad.addColorStop(0.2, `rgba(0,255,170,${0.3 * pulse})`);
+    glowGrad.addColorStop(0.5, `rgba(0,255,170,${0.5 * pulse})`);
+    glowGrad.addColorStop(0.8, `rgba(0,255,170,${0.3 * pulse})`);
+    glowGrad.addColorStop(1, 'rgba(0,255,170,0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(-hw - 4, -hh - 6, (hw + 4) * 2, (hh + 6) * 2);
+
+    // Core bar
+    const coreGrad = ctx.createLinearGradient(0, -hh, 0, hh);
+    coreGrad.addColorStop(0, acc);
+    coreGrad.addColorStop(0.5, '#ffffff');
+    coreGrad.addColorStop(1, acc);
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.roundRect(-hw, -hh, hw * 2, hh * 2, hh);
+    ctx.fill();
+
+    // Scan-line animation
+    const scanX = -hw + ((frame * 3) % (hw * 2));
+    ctx.fillStyle = `rgba(255,255,255,${0.6 * pulse})`;
+    ctx.fillRect(scanX, -hh + 1, 4, hh * 2 - 2);
+
+    // End caps (hexagonal nodes)
+    [-hw, hw].forEach(cx => {
+      ctx.fillStyle = '#003322';
+      ctx.beginPath();
+      ctx.arc(cx, 0, hh + 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = acc;
+      ctx.beginPath();
+      ctx.arc(cx, 0, hh - 1, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // ── Shared: small shield badge (warns player: can't shoot) ────
+  _drawShieldBadge(ctx, frame) {
+    const pulse = 0.8 + 0.2 * Math.sin(frame * 0.18);
+    const bx = this.w / 2 - 10;
+    const by = -this.h / 2 + 2;
+
+    // Badge circle
+    ctx.fillStyle = `rgba(0,0,0,${0.75 * pulse})`;
+    ctx.beginPath();
+    ctx.arc(bx, by, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shield outline
+    ctx.strokeStyle = `rgba(0,255,170,${pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(bx, by, 8, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Shield icon (mini shield path)
+    ctx.fillStyle = `rgba(0,255,170,${pulse})`;
+    ctx.beginPath();
+    ctx.moveTo(bx, by - 5);
+    ctx.lineTo(bx + 4, by - 3);
+    ctx.lineTo(bx + 4, by + 1);
+    ctx.quadraticCurveTo(bx + 4, by + 5, bx, by + 6);
+    ctx.quadraticCurveTo(bx - 4, by + 5, bx - 4, by + 1);
+    ctx.lineTo(bx - 4, by - 3);
+    ctx.closePath();
+    ctx.fill();
+  }
 }
+
 
 // ─── PARTICLE ─────────────────────────────────────────────────
 class Particle {

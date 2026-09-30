@@ -49,17 +49,34 @@ class Spawner {
   }
 
   /**
-   * Pick which enemy type to spawn based on current level.
-   * Easily extendable — add new types to ENEMY_TYPES and
-   * adjust the probability table here.
+   * Pick which object type to spawn based on current level.
+   *
+   * Types with  shootable: true  → can be destroyed by missiles
+   * Types with  shootable: false → missiles pass through them
+   *
+   * Probability table:
+   *   asteroid  — non-shootable rocky hazard, always present
+   *   barrier   — non-shootable energy wall, always present
+   *   speeder   — shootable, unlocked at level 2
+   *   tank      — shootable, unlocked at level 3
+   *   basic     — shootable, filler
    */
   _chooseType(level, isBossLevel) {
     if (isBossLevel) return 'boss';
 
-    // Weighted random selection based on level
     const roll = Math.random();
-    if (level >= 3 && roll < 0.15) return 'tank';
-    if (level >= 2 && roll < 0.30) return 'speeder';
+
+    // Non-shootable hazards — always in the mix (25% base chance)
+    const nonShootChance = Math.min(0.35, 0.25 + (level - 1) * 0.01);
+    if (roll < nonShootChance) {
+      return Math.random() < 0.55 ? 'asteroid' : 'barrier';
+    }
+
+    // Shootable enemies — weighted by level
+    const r2 = Math.random();
+    if (level >= 3 && r2 < 0.18) return 'tank';
+    if (level >= 2 && r2 < 0.35) return 'speeder';
     return 'basic';
   }
 }
+

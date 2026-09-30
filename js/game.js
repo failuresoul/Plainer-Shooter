@@ -112,20 +112,31 @@ class Game {
     this.enemies.forEach(e => e.update(this.frame));
     this.enemies = this.enemies.filter(e => e.active);
 
-    // ── Bullet–enemy collisions ──
+    // ── Bullet–object collisions ──
+    // • Shootable   → bullet consumed, enemy takes damage / destroyed
+    // • Non-shootable → bullet consumed (vanishes), object unaffected
     for (let bi = this.bullets.length - 1; bi >= 0; bi--) {
       const b = this.bullets[bi];
+      if (!b.active) continue;
       for (let ei = this.enemies.length - 1; ei >= 0; ei--) {
         const e = this.enemies[ei];
+        if (!e.active) continue;
         if (rectCollides(b.hitbox, e.hitbox)) {
-          b.active = false;
-          const destroyed = e.hit();
-          if (destroyed) {
-            const pts = e.scoreValue * this.cfg.scorePerKill;
-            this._addScore(pts, e.x + e.w / 2, e.y + e.h / 2);
-            this._explode(e.x + e.w / 2, e.y + e.h / 2, e.color);
+          if (e.shootable) {
+            // ── SHOOTABLE: bullet destroys / damages the object ──
+            b.active = false;
+            const destroyed = e.hit();
+            if (destroyed) {
+              const pts = e.scoreValue * this.cfg.scorePerKill;
+              this._addScore(pts, e.x + e.w / 2, e.y + e.h / 2);
+              this._explode(e.x + e.w / 2, e.y + e.h / 2, e.color);
+            }
+          } else {
+            // ── NON-SHOOTABLE: bullet vanishes, object keeps going ──
+            b.active = false;
+            this._spawnBulletAbsorb(b.x, b.y);
           }
-          break;
+          break; // one bullet hits one object per frame
         }
       }
     }
@@ -216,6 +227,19 @@ class Game {
     const colors = [color, '#ff9900', '#ffffff', '#ffdd00'];
     for (let i = 0; i < count; i++) {
       this.particles.push(new Particle(x, y, colors[i % colors.length]));
+    }
+  }
+
+  /** Visual feedback when a bullet hits a non-shootable object.
+   *  Small teal spark burst — distinct from the orange explosion. */
+  _spawnBulletAbsorb(x, y) {
+    const colors = ['#00ffaa', '#00ccff', '#ffffff'];
+    for (let i = 0; i < 6; i++) {
+      const p = new Particle(x + 2, y, colors[i % colors.length]);
+      p.vx *= 0.5;         // tighter spread
+      p.vy = randFloat(-2.5, -0.5); // mostly upward sparks
+      p.size = randFloat(1.5, 3.5);
+      this.particles.push(p);
     }
   }
 
