@@ -154,8 +154,8 @@ class Game {
   }
 
   _draw() {
-    const { renderer, ctx } = this;
-    const ctx2 = this.renderer.ctx;
+    const renderer = this.renderer;
+    const ctx2 = renderer.ctx;
 
     renderer.clear();
     renderer.drawBackground(this.frame);
